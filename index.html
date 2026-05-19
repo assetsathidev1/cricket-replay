@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#0c0c0e">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Cricket Replay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ─── Record Screen ─────────────────────────────────────── -->
+  <div id="screen-record" class="screen active">
+
+    <div class="camera-wrap">
+      <video id="live-video" autoplay muted playsinline></video>
+      <canvas id="live-overlay"></canvas>
+    </div>
+
+    <div class="rec-bar">
+      <div class="status-row">
+        <span id="rec-dot"></span>
+        <span id="buffer-status">Buffer: 0s</span>
+        <span id="fps-display"></span>
+        <span style="flex:1"></span>
+        <small style="color:#52525b">Mount side-on ~60-70 yards from pole</small>
+      </div>
+      <div class="btn-row">
+        <button id="btn-start-stop" class="btn btn-primary">Start Recording</button>
+        <button id="btn-capture"    class="btn btn-danger"  disabled>Capture Incident</button>
+      </div>
+      <div class="btn-row">
+        <button id="btn-incidents" class="btn btn-secondary">
+          Incidents (<span id="incident-count">0</span>)
+        </button>
+        <button id="btn-set-pole" class="btn btn-secondary" disabled>Set Pole Marker</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── Playback Screen ───────────────────────────────────── -->
+  <div id="screen-playback" class="screen">
+
+    <div class="pb-header">
+      <button id="btn-back" class="btn btn-icon">‹ Back</button>
+      <span class="title">Incident Review</span>
+      <button id="btn-export" class="btn btn-sm btn-secondary">Export</button>
+    </div>
+
+    <div class="canvas-wrap">
+      <video id="playback-video" muted playsinline></video>
+      <canvas id="playback-canvas"></canvas>
+    </div>
+
+    <div class="timeline-wrap">
+      <input type="range" id="timeline" min="0" max="100" value="0" step="any">
+      <div class="time-row">
+        <span id="current-time">0:00</span>
+        <span id="total-time">0:00</span>
+      </div>
+    </div>
+
+    <div class="pb-controls">
+      <div class="speed-row">
+        <span>Speed:</span>
+        <button class="btn btn-sm speed-btn active" data-speed="1">1×</button>
+        <button class="btn btn-sm speed-btn" data-speed="0.5">0.5×</button>
+        <button class="btn btn-sm speed-btn" data-speed="0.25">0.25×</button>
+        <button class="btn btn-sm speed-btn" data-speed="0.1">0.1×</button>
+      </div>
+      <div class="transport-row">
+        <button id="btn-step-back" class="btn btn-icon" title="Step back one frame">⏮</button>
+        <button id="btn-play-pause" class="btn btn-primary">▶ Play</button>
+        <button id="btn-step-fwd"  class="btn btn-icon" title="Step forward one frame">⏭</button>
+      </div>
+      <div class="pole-row">
+        <button id="btn-toggle-pole" class="btn btn-secondary">Set Pole Marker</button>
+        <button id="btn-clear-pole"  class="btn btn-sm btn-secondary">Clear</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── Incidents List Screen ─────────────────────────────── -->
+  <div id="screen-incidents" class="screen">
+
+    <div class="list-header">
+      <button id="btn-back-from-list" class="btn btn-icon">‹ Back</button>
+      <h2>Incidents</h2>
+    </div>
+
+    <div class="incidents-scroll">
+      <div id="incidents-list"></div>
+    </div>
+
+  </div>
+
+  <script src="storage.js"></script>
+  <script src="recorder.js"></script>
+  <script src="playback.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

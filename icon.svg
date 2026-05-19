@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <rect width="192" height="192" rx="36" fill="#0c0c0e"/>
+  <!-- Cricket ball -->
+  <circle cx="96" cy="88" r="46" fill="#dc2626"/>
+  <!-- Seam lines -->
+  <path d="M58 72 Q96 96 134 72" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <path d="M58 104 Q96 80 134 104" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <!-- Boundary line (pole) -->
+  <rect x="32" y="148" width="128" height="4" rx="2" fill="#2563eb"/>
+  <rect x="88" y="130" width="4" height="22" rx="2" fill="#2563eb"/>
+  <!-- Play triangle -->
+  <polygon points="85,78 85,100 105,89" fill="white" opacity="0.9"/>
+</svg>

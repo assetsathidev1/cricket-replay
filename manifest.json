@@ -1,0 +1,18 @@
+{
+  "name": "Cricket Replay",
+  "short_name": "CricketReplay",
+  "description": "Frame-by-frame boundary dispute review for cricket",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c0c0e",
+  "theme_color": "#0c0c0e",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
