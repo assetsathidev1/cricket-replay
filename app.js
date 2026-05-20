@@ -478,6 +478,7 @@ class CricketReplayApp {
   }
 
   async _onRelayMessageRecorder(msg) {
+    try {
     switch (msg.type) {
       case 'waiting':
         this.relayStatus.textContent = '⏳ Waiting for umpire';
@@ -508,6 +509,11 @@ class CricketReplayApp {
         }
         break;
       }
+    }
+    } catch (err) {
+      // Surface any error to the umpire phone so it's visible
+      console.error('[Recorder relay]', err);
+      this.relay.send({ type: 'status', message: '⚠️ Recorder error: ' + err.message });
     }
   }
 
@@ -548,11 +554,20 @@ class CricketReplayApp {
           this.relay.send({ type: 'upload_complete', key });
           resolve();
         } else {
-          reject(new Error('S3 upload failed: ' + xhr.status));
+          // Log response body to help diagnose S3 signature errors
+          const msg = `S3 upload failed: HTTP ${xhr.status} — ${xhr.responseText?.slice(0, 200)}`;
+          console.error(msg);
+          this.relay.send({ type: 'status', message: '⚠️ ' + msg });
+          reject(new Error(msg));
         }
       };
 
-      xhr.onerror = () => reject(new Error('S3 upload network error'));
+      xhr.onerror = () => {
+        const msg = 'S3 upload network error (CORS or connectivity)';
+        console.error(msg);
+        this.relay.send({ type: 'status', message: '⚠️ ' + msg });
+        reject(new Error(msg));
+      };
 
       xhr.open('PUT', url);
       xhr.setRequestHeader('Content-Type', blob.type);

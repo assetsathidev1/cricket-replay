@@ -33,7 +33,13 @@ class Relay {
     this.ws.onmessage = (e) => {
       try {
         const msg = JSON.parse(e.data);
-        if (this.onMessage) this.onMessage(msg);
+        if (this.onMessage) {
+          // onMessage may be async — catch rejections so they don't vanish silently
+          const r = this.onMessage(msg);
+          if (r && typeof r.catch === 'function') {
+            r.catch(err => console.error('[Relay] async handler error', err));
+          }
+        }
       } catch (err) { console.error('[Relay] parse error', err); }
     };
 
