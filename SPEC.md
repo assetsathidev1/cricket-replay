@@ -2,12 +2,14 @@
 
 ## Problem Statement
 
-In amateur cricket matches, boundary disputes are common — fielders catch the ball near the rope and neither team nor the umpire can agree on whether the ball crossed. The umpire's position (behind the stumps or square leg) introduces **parallax error**: they are never side-on to the boundary, so their view is inherently unreliable.
+In amateur cricket matches, **six-or-out disputes** at the boundary pole are common — when the ball travels near the boundary pole, nobody can agree which side it passed. The ruling is simple in principle: ball to the left of the pole = out, ball to the right = six. But the umpire's position (behind the stumps or at square leg) introduces **parallax error** — they are never side-on to the pole, so their view is inherently unreliable.
+
+This is specifically a **pole dispute tool**, not a general boundary or catch tool. The ball's path relative to the pole is the only thing being judged.
 
 The goal is a lightweight video tool that:
-- Runs on a phone mounted side-on to the boundary
+- Runs on a phone mounted side-on to the boundary pole
 - Keeps a rolling buffer so captures can happen *after* a dispute
-- Enables frame-by-frame review with a visual reference line on the pole/rope
+- Enables frame-by-frame review with a red reference line pinned to the pole
 
 ---
 
@@ -182,3 +184,4 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 |---|---|
 | `be9fd23` | Initial implementation: recording, rolling buffer, playback, pole marker, incidents list |
 | `eafa9f6` | Fix PWA manifest `start_url` and service worker asset paths for GitHub Pages `/cricket-replay/` base |
+| `9526ac0` | Add SPEC.md: decision log for current implementation |
