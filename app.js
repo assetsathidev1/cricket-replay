@@ -272,13 +272,18 @@ class CricketReplayApp {
     setInterval(() => { if (this.playback) this._updateZoomBadge(this.playback.zoom); }, 200);
 
     // ── Incidents ─────────────────────────────────────────────────
-    this.btnBackFromList.addEventListener('click', () => this._showScreen('record'));
+    this.btnBackFromList.addEventListener('click', () =>
+      this._showScreen(this._mode === 'umpire' ? 'umpire' : 'record'));
 
     // ── Umpire ───────────────────────────────────────────────────
     this.btnUmpireBack.addEventListener('click', () => {
       this.relay.disconnect();
       this._showScreen('mode');
     });
+
+    this.btnUmpireIncidents = document.getElementById('btn-umpire-incidents');
+    this.umpireIncidentCount = document.getElementById('umpire-incident-count');
+    this.btnUmpireIncidents.addEventListener('click', () => this._showScreen('incidents'));
 
     this.btnUmpireConnect.addEventListener('click', () => this._umpireConnect());
     this.roomCodeInput.addEventListener('keydown', (e) => {
@@ -355,7 +360,7 @@ class CricketReplayApp {
   async _init() {
     await this.storage.init();
     this.incidents = await this.storage.getAllIncidents();
-    this.incidentCount.textContent = this.incidents.length;
+    this.incidentCount.textContent = this.incidents.length; this.umpireIncidentCount.textContent = this.incidents.length;
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
@@ -441,7 +446,7 @@ class CricketReplayApp {
       const timestamp = Date.now();
       const id = await this.storage.saveIncident({ blob, timestamp });
       this.incidents.push({ id, blob, timestamp });
-      this.incidentCount.textContent = this.incidents.length;
+      this.incidentCount.textContent = this.incidents.length; this.umpireIncidentCount.textContent = this.incidents.length;
       this.currentBlob = blob;
       await this._openPlayback(blob);
     } catch (err) {
@@ -530,7 +535,7 @@ class CricketReplayApp {
     if (fullBlob) {
       const id = await this.storage.saveIncident({ blob: fullBlob, timestamp: Date.now() });
       this.incidents.push({ id, blob: fullBlob, timestamp: Date.now() });
-      this.incidentCount.textContent = this.incidents.length;
+      this.incidentCount.textContent = this.incidents.length; this.umpireIncidentCount.textContent = this.incidents.length;
     }
 
     // Request a presigned upload URL from Lambda
@@ -689,7 +694,7 @@ class CricketReplayApp {
     try {
       const id = await this.storage.saveIncident({ blob, timestamp, name });
       this.incidents.push({ id, blob, timestamp, name });
-      this.incidentCount.textContent = this.incidents.length;
+      this.incidentCount.textContent = this.incidents.length; this.umpireIncidentCount.textContent = this.incidents.length;
       this.btnUmpireSave.textContent = '✓ Saved';
       setTimeout(() => { this.btnUmpireSave.textContent = 'Save'; }, 2000);
       this.incidentNameInput.value = '';
@@ -992,7 +997,12 @@ class CricketReplayApp {
     const inc = this.incidents.find(i => i.id === id);
     if (!inc) return;
     this.currentBlob = inc.blob;
-    await this._openPlayback(inc.blob);
+    if (this._mode === 'umpire') {
+      await this._umpireDownloadAndPlay(URL.createObjectURL(inc.blob));
+      this._showScreen('umpire');
+    } else {
+      await this._openPlayback(inc.blob);
+    }
   }
 
   _shareIncident(id) {
@@ -1004,7 +1014,7 @@ class CricketReplayApp {
     if (!confirm('Delete this incident?')) return;
     await this.storage.deleteIncident(id);
     this.incidents = this.incidents.filter(i => i.id !== id);
-    this.incidentCount.textContent = this.incidents.length;
+    this.incidentCount.textContent = this.incidents.length; this.umpireIncidentCount.textContent = this.incidents.length;
     this._renderList();
   }
 }
