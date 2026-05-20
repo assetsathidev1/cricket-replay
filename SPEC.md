@@ -178,6 +178,33 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 
 ---
 
+## Bug Fixes & Improvements (v2)
+
+### Issue 1 — Pole marker breaks on phone rotation
+**Root cause:** marker was stored in canvas pixel coords. On rotation the canvas resizes (width ↔ height swap) but the stored pixel value pointed to the wrong position.
+
+**Fix:** store as normalised fractions `{ nx, ny }` (0–1 of canvas dimensions). `_drawLivePole()` converts to pixels at draw time using the current canvas size. Rotation fires ResizeObserver → redraw → marker stays on the pole.
+
+### Issue 2 — No zoom on live view
+**Considered:** canvas capture stream (record the zoomed video). Rejected: adds complexity and a persistent `requestAnimationFrame` loop just for recording.
+
+**Chosen:** CSS `transform: scale(N)` on a `#camera-inner` wrapper div that contains both the `<video>` and the overlay `<canvas>`. Both elements scale together so the overlay click coordinates remain correct without any compensation. `overflow: hidden` on `.camera-wrap` clips content outside the viewport. A slider (1×–5×) controls zoom. Does **not** affect the recorded video (raw stream is captured); full-resolution footage is always saved.
+
+### Issue 3 — No zoom in playback review
+**Approach:** `drawImage(video, srcX, srcY, srcW, srcH, 0, 0, canvasW, canvasH)` — render only a sub-region of the decoded frame, stretched to fill the canvas. This is pure canvas math, no extra DOM elements.
+
+- Pole marker stored in video pixel space; converted to canvas pixel space at draw time through the same `_srcRegion` used for rendering → marker stays on the pole at all zoom levels
+- **Pinch-to-zoom:** two-finger spread/squeeze changes zoom; pinch midpoint is used as the zoom anchor so the view stays centred on what the user is looking at
+- **Drag-to-pan:** single-finger drag when zoom > 1
+- **Reset Zoom button** snaps back to 1× and recentres
+
+### Issue 4 — Export "format not supported"
+**Root cause:** `<a download>` triggers a file download, not a share. On mobile this either saves to Files (not intuitive) or the receiving app rejects the MIME type.
+
+**Fix:** `navigator.share({ files: [file] })` — opens the native OS share sheet (same as sharing from Photos or WhatsApp). File extension is set from the blob MIME type (`.webm` or `.mp4`). Falls back to `<a download>` on desktop where the Share API is unavailable. AbortError (user cancelled share sheet) is swallowed silently.
+
+---
+
 ## Commit History
 
 | Commit | Description |
@@ -185,3 +212,5 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 | `be9fd23` | Initial implementation: recording, rolling buffer, playback, pole marker, incidents list |
 | `eafa9f6` | Fix PWA manifest `start_url` and service worker asset paths for GitHub Pages `/cricket-replay/` base |
 | `9526ac0` | Add SPEC.md: decision log for current implementation |
+| `451fe6d` | Update SPEC.md: clarify problem as six-or-out pole dispute |
+| `295ac5e` | Fix rotation, add zoom (live + playback), fix share/export |
