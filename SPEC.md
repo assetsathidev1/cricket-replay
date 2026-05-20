@@ -198,6 +198,21 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 - **Drag-to-pan:** single-finger drag when zoom > 1
 - **Reset Zoom button** snaps back to 1× and recentres
 
+### Issue 5 — Pole marker hard to position precisely
+
+**Problem:** single-tap to place meant any slight inaccuracy required clearing and starting again.
+
+**State machine introduced:** `none → placing → adjusting → locked`
+- `placing`: button turns red with instruction text; canvas cursor changes to crosshair; tap places the line
+- `adjusting`: line shown amber/dashed with drag-direction arrows on the anchor circle. A single finger drag moves the line. Vertical line: only X-axis moves. Horizontal line: only Y-axis moves. This prevents accidental diagonal drift and makes fine-tuning intuitive.
+- `locked`: line turns solid red. The "Adjust" button re-enters adjusting mode without clearing.
+
+**Rotate button:** toggles the line between vertical (pole) and horizontal (rope/ground level). The anchor point stays fixed — only the orientation changes. Useful if the camera angle makes a horizontal reference more readable.
+
+**Drag priority:** in `adjusting` state, single-finger touch moves the pole even when zoomed in (overrides the pan gesture). Two-finger pinch still zooms.
+
+**Same flow on live view:** the recording overlay uses the same 4 states with the same button set, so the umpire can fine-tune the pole reference before play starts.
+
 ### Issue 4 — Export "format not supported"
 **Root cause:** `<a download>` triggers a file download, not a share. On mobile this either saves to Files (not intuitive) or the receiving app rejects the MIME type.
 
@@ -214,3 +229,4 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 | `9526ac0` | Add SPEC.md: decision log for current implementation |
 | `451fe6d` | Update SPEC.md: clarify problem as six-or-out pole dispute |
 | `295ac5e` | Fix rotation, add zoom (live + playback), fix share/export |
+| `f90adba` | Draggable pole marker with state machine + rotate button |
