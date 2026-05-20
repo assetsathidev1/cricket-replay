@@ -92,12 +92,17 @@ class Recorder {
   }
 
   _getSupportedMimeType() {
+    // Prefer MP4 — universally shareable (WhatsApp, iMessage, Files app, etc.)
+    // Chrome 130+ on Android supports mp4/avc1 natively; Safari/iOS always has.
+    // Fall back to WebM variants if MP4 recording is not available on this device.
     const types = [
+      'video/mp4;codecs=avc1',
+      'video/mp4;codecs=h264',
+      'video/mp4',
       'video/webm;codecs=h264',
       'video/webm;codecs=vp9',
       'video/webm;codecs=vp8',
       'video/webm',
-      'video/mp4',
     ];
     return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
   }

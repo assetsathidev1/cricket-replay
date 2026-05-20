@@ -220,6 +220,20 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 
 ---
 
+## Bug Fixes (v3)
+
+### Issue 6 — Live rotate button disabled permanently
+**Root cause:** `btn-rotate-live` had `disabled` attribute hard-coded in the HTML. `_updateLivePoleButtons()` only toggles `display:none` via `_show()` — it never removes the `disabled` attribute. So the button appeared (became visible) but remained permanently unclickable.
+
+**Fix:** Remove `disabled` from the HTML element. The button is hidden via `display:none` by default and shown by the state machine; no separate `disabled` needed.
+
+### Issue 7 — Shared video is WebM (not supported by WhatsApp / iMessage)
+**Root cause:** `_getSupportedMimeType()` tried WebM variants first and `video/mp4` last. On most Android Chrome builds this meant recordings were always WebM, which many share targets (WhatsApp, iMessage, system Files app) reject.
+
+**Fix:** Reorder to probe MP4 formats first (`video/mp4;codecs=avc1`, `video/mp4;codecs=h264`, `video/mp4`). Android Chrome 130+ and all Safari/iOS versions support recording directly to MP4. The file extension in `_shareBlob()` already detects `blob.type` and sets `.mp4` or `.webm` accordingly — no other change needed. Devices that don't support MP4 recording fall back to WebM (unavoidable without client-side transcoding, which is too heavy for a PWA).
+
+---
+
 ## Commit History
 
 | Commit | Description |
@@ -230,3 +244,4 @@ Pending. AWS API Gateway WebSocket is the leading option. To be implemented in t
 | `451fe6d` | Update SPEC.md: clarify problem as six-or-out pole dispute |
 | `295ac5e` | Fix rotation, add zoom (live + playback), fix share/export |
 | `f90adba` | Draggable pole marker with state machine + rotate button |
+| *(next)* | Fix live rotate button (remove stale `disabled`), prefer MP4 recording format |
