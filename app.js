@@ -551,6 +551,8 @@ class CricketReplayApp {
 
       xhr.onload = () => {
         if (xhr.status === 200 || xhr.status === 204) {
+          // Ping umpire so we know XHR completed and relay.send is reachable
+          this.relay.send({ type: 'status', message: '✓ Upload done — fetching video…' });
           this.relay.send({ type: 'upload_complete', key });
           resolve();
         } else {
