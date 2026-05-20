@@ -83,6 +83,7 @@ html, body {
   width: 100%;
   height: 100%;
   pointer-events: none;
+  touch-action: none;
 }
 
 .rec-bar {
@@ -236,8 +237,12 @@ html, body {
 .pole-row {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
 }
-.pole-row .btn { flex: 1; }
+/* Set Pole Marker is the only full-width one; others are auto-width */
+#btn-set-pole-pb { flex: 1; }
+.pole-row .btn-sm { flex: none; }
 
 /* ─── Incidents List ───────────────────────────────────────── */
 .list-header {

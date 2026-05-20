@@ -1,17 +1,17 @@
 class CricketReplayApp {
   constructor() {
-    this.storage = new Storage();
+    this.storage  = new Storage();
     this.recorder = new Recorder();
     this.playback = null;
     this.incidents = [];
     this.currentBlob = null;
 
-    // Live pole marker stored as NORMALISED coords (0–1) so rotation doesn't break it
-    this.livePoleMarker = null;
-    this.livePoleMode   = false;
-    this.liveZoom       = 1;
+    // Live pole — normalised (0-1) coords survive rotation
+    this.livePoleMarker = null;   // { nx, ny }
+    this.livePoleAngle  = 0;      // 0=vertical 90=horizontal
+    this.livePoleState  = 'none'; // 'none'|'placing'|'adjusting'|'locked'
 
-    this.playbackPoleMode = false;
+    this.liveZoom    = 1;
     this.isScrubbing = false;
 
     this._bindElements();
@@ -26,22 +26,28 @@ class CricketReplayApp {
       incidents: document.getElementById('screen-incidents'),
     };
 
-    // Record
-    this.liveVideo     = document.getElementById('live-video');
-    this.liveOverlay   = document.getElementById('live-overlay');
-    this.cameraInner   = document.getElementById('camera-inner');
-    this.btnStartStop  = document.getElementById('btn-start-stop');
-    this.btnCapture    = document.getElementById('btn-capture');
-    this.btnIncidents  = document.getElementById('btn-incidents');
-    this.btnSetPole    = document.getElementById('btn-set-pole');
-    this.recDot        = document.getElementById('rec-dot');
-    this.bufferStatus  = document.getElementById('buffer-status');
-    this.fpsDisplay    = document.getElementById('fps-display');
-    this.incidentCount = document.getElementById('incident-count');
-    this.liveZoomSlider= document.getElementById('live-zoom');
-    this.liveZoomVal   = document.getElementById('live-zoom-val');
+    // ── Record ──
+    this.liveVideo      = document.getElementById('live-video');
+    this.liveOverlay    = document.getElementById('live-overlay');
+    this.cameraInner    = document.getElementById('camera-inner');
+    this.btnStartStop   = document.getElementById('btn-start-stop');
+    this.btnCapture     = document.getElementById('btn-capture');
+    this.btnIncidents   = document.getElementById('btn-incidents');
+    this.recDot         = document.getElementById('rec-dot');
+    this.bufferStatus   = document.getElementById('buffer-status');
+    this.fpsDisplay     = document.getElementById('fps-display');
+    this.incidentCount  = document.getElementById('incident-count');
+    this.liveZoomSlider = document.getElementById('live-zoom');
+    this.liveZoomVal    = document.getElementById('live-zoom-val');
 
-    // Playback
+    // Live pole buttons
+    this.btnSetPole       = document.getElementById('btn-set-pole');
+    this.btnRotateLive    = document.getElementById('btn-rotate-live');
+    this.btnLockLive      = document.getElementById('btn-lock-live');
+    this.btnAdjustLive    = document.getElementById('btn-adjust-live');
+    this.btnClearLivePole = document.getElementById('btn-clear-live-pole');
+
+    // ── Playback ──
     this.playbackVideo  = document.getElementById('playback-video');
     this.playbackCanvas = document.getElementById('playback-canvas');
     this.zoomBadge      = document.getElementById('zoom-badge');
@@ -50,53 +56,146 @@ class CricketReplayApp {
     this.btnPlayPause   = document.getElementById('btn-play-pause');
     this.btnStepBack    = document.getElementById('btn-step-back');
     this.btnStepFwd     = document.getElementById('btn-step-fwd');
-    this.btnTogglePole  = document.getElementById('btn-toggle-pole');
-    this.btnClearPole   = document.getElementById('btn-clear-pole');
     this.btnResetZoom   = document.getElementById('btn-reset-zoom');
     this.timeline       = document.getElementById('timeline');
     this.currentTimeEl  = document.getElementById('current-time');
     this.totalTimeEl    = document.getElementById('total-time');
     this.speedBtns      = document.querySelectorAll('.speed-btn');
 
-    // Incidents
+    // Playback pole buttons
+    this.btnSetPolePb   = document.getElementById('btn-set-pole-pb');
+    this.btnRotatePole  = document.getElementById('btn-rotate-pole');
+    this.btnLockPole    = document.getElementById('btn-lock-pole');
+    this.btnAdjustPole  = document.getElementById('btn-adjust-pole');
+    this.btnClearPole   = document.getElementById('btn-clear-pole');
+
+    // ── Incidents ──
     this.btnBackFromList = document.getElementById('btn-back-from-list');
     this.incidentsList   = document.getElementById('incidents-list');
   }
 
   _bindEvents() {
-    // ── Record screen ──────────────────────────────────────────
+    // ── Record ──────────────────────────────────────────────────
     this.btnStartStop.addEventListener('click', () => this._toggleRecording());
     this.btnCapture.addEventListener('click',   () => this._captureIncident());
     this.btnIncidents.addEventListener('click', () => this._showScreen('incidents'));
-    this.btnSetPole.addEventListener('click',   () => this._toggleLivePoleMode());
-    this.liveOverlay.addEventListener('click',  (e) => this._handleLiveClick(e));
 
-    // Live zoom slider
     this.liveZoomSlider.addEventListener('input', () => {
       this.liveZoom = parseFloat(this.liveZoomSlider.value);
       this.liveZoomVal.textContent = this.liveZoom.toFixed(1) + '×';
       this.cameraInner.style.transform = `scale(${this.liveZoom})`;
-      if (this.livePoleMarker) this._drawLivePole(); // redraw at same norm coords
     });
 
-    // ── Playback screen ────────────────────────────────────────
+    // Live pole buttons
+    this.btnSetPole.addEventListener('click', () => {
+      this.livePoleState = 'placing';
+      this.liveOverlay.style.pointerEvents = 'auto';
+      this._updateLivePoleButtons();
+    });
+    this.btnRotateLive.addEventListener('click', () => {
+      this.livePoleAngle = this.livePoleAngle === 0 ? 90 : 0;
+      this._drawLivePole();
+    });
+    this.btnLockLive.addEventListener('click', () => {
+      this.livePoleState = 'locked';
+      this.liveOverlay.style.pointerEvents = 'none';
+      this._updateLivePoleButtons();
+      this._drawLivePole();
+    });
+    this.btnAdjustLive.addEventListener('click', () => {
+      this.livePoleState = 'adjusting';
+      this.liveOverlay.style.pointerEvents = 'auto';
+      this._updateLivePoleButtons();
+      this._drawLivePole();
+    });
+    this.btnClearLivePole.addEventListener('click', () => {
+      this.livePoleMarker = null;
+      this.livePoleState  = 'none';
+      this.livePoleAngle  = 0;
+      this.liveOverlay.style.pointerEvents = 'none';
+      this._updateLivePoleButtons();
+      this._drawLivePole();
+    });
+
+    // Live overlay: click to place, touch to drag
+    this.liveOverlay.addEventListener('click', (e) => {
+      if (this.livePoleState !== 'placing') return;
+      const { nx, ny } = this._overlayNorm(e);
+      this.livePoleMarker = { nx, ny };
+      this.livePoleState  = 'adjusting';
+      this._updateLivePoleButtons();
+      this._drawLivePole();
+    });
+
+    this.liveOverlay.addEventListener('touchstart', (e) => {
+      if (this.livePoleState !== 'placing' && this.livePoleState !== 'adjusting') return;
+      e.preventDefault();
+      const { nx, ny } = this._overlayNormTouch(e.touches[0]);
+      if (this.livePoleState === 'placing') {
+        this.livePoleMarker = { nx, ny };
+        this.livePoleState  = 'adjusting';
+        this._updateLivePoleButtons();
+      } else {
+        this._applyLiveDrag(nx, ny);
+      }
+      this._drawLivePole();
+    }, { passive: false });
+
+    this.liveOverlay.addEventListener('touchmove', (e) => {
+      if (this.livePoleState !== 'adjusting') return;
+      e.preventDefault();
+      const { nx, ny } = this._overlayNormTouch(e.touches[0]);
+      this._applyLiveDrag(nx, ny);
+      this._drawLivePole();
+    }, { passive: false });
+
+    // Live overlay resize — normalised coords survive rotation automatically
+    new ResizeObserver(() => {
+      this.liveOverlay.width  = this.liveOverlay.offsetWidth;
+      this.liveOverlay.height = this.liveOverlay.offsetHeight;
+      if (this.livePoleMarker) this._drawLivePole();
+    }).observe(this.liveOverlay);
+
+    // ── Playback ─────────────────────────────────────────────────
     this.btnBack.addEventListener('click',      () => this._showScreen('record'));
     this.btnExport.addEventListener('click',    () => this._shareBlob(this.currentBlob));
     this.btnPlayPause.addEventListener('click', () => this._togglePlayPause());
     this.btnStepBack.addEventListener('click',  () => this.playback?.stepBack());
     this.btnStepFwd.addEventListener('click',   () => this.playback?.stepForward());
-    this.btnTogglePole.addEventListener('click',() => this._togglePlaybackPoleMode());
-    this.btnClearPole.addEventListener('click', () => {
-      this.playback?.clearPoleMarker();
-      this.playbackPoleMode = false;
-      this._updatePoleBtn();
-    });
     this.btnResetZoom.addEventListener('click', () => {
       this.playback?.resetZoom();
       this._updateZoomBadge(1);
     });
 
-    this.playbackCanvas.addEventListener('click', (e) => this._handleCanvasClick(e));
+    // Playback pole buttons
+    this.btnSetPolePb.addEventListener('click', () => {
+      this.playback?.startPlacing();
+      this._updatePlaybackPoleButtons();
+    });
+    this.btnRotatePole.addEventListener('click', () => {
+      this.playback?.rotatePole();
+      // no state change — just re-render
+    });
+    this.btnLockPole.addEventListener('click', () => {
+      this.playback?.lockPole();
+      this._updatePlaybackPoleButtons();
+    });
+    this.btnAdjustPole.addEventListener('click', () => {
+      this.playback?.startAdjusting();
+      this._updatePlaybackPoleButtons();
+    });
+    this.btnClearPole.addEventListener('click', () => {
+      this.playback?.clearPole();
+      this._updatePlaybackPoleButtons();
+    });
+
+    // Canvas click: only used to PLACE the pole (state=placing)
+    this.playbackCanvas.addEventListener('click', (e) => {
+      if (!this.playback || this.playback.poleState !== 'placing') return;
+      const { x, y } = this.playback.eventToCanvas(e);
+      this.playback.placePoleAt(x, y);
+      this._updatePlaybackPoleButtons();
+    });
 
     // Timeline
     this.timeline.addEventListener('mousedown',  () => this.isScrubbing = true);
@@ -115,27 +214,15 @@ class CricketReplayApp {
       });
     });
 
-    // Playback video events
-    this.playbackVideo.addEventListener('timeupdate', () => this._onTimeUpdate());
+    this.playbackVideo.addEventListener('timeupdate',     () => this._onTimeUpdate());
     this.playbackVideo.addEventListener('loadedmetadata', () => this._onVideoLoaded());
-    this.playbackVideo.addEventListener('ended', () => {
-      this.btnPlayPause.textContent = '▶ Play';
-    });
+    this.playbackVideo.addEventListener('ended', () => { this.btnPlayPause.textContent = '▶ Play'; });
 
-    // Zoom badge update (hook into playback touchmove via periodic check)
-    setInterval(() => {
-      if (this.playback) this._updateZoomBadge(this.playback.zoom);
-    }, 200);
+    // Zoom badge refresh
+    setInterval(() => { if (this.playback) this._updateZoomBadge(this.playback.zoom); }, 200);
 
-    // Incidents
+    // ── Incidents ─────────────────────────────────────────────────
     this.btnBackFromList.addEventListener('click', () => this._showScreen('record'));
-
-    // Live overlay canvas resize — just redraw with same normalised coords
-    new ResizeObserver(() => {
-      this.liveOverlay.width  = this.liveOverlay.offsetWidth;
-      this.liveOverlay.height = this.liveOverlay.offsetHeight;
-      if (this.livePoleMarker) this._drawLivePole();
-    }).observe(this.liveOverlay);
   }
 
   async _init() {
@@ -159,8 +246,8 @@ class CricketReplayApp {
         await this.recorder.start(this.liveVideo);
         this.btnStartStop.textContent = 'Stop Recording';
         this.btnStartStop.className   = 'btn btn-secondary';
-        this.btnCapture.disabled  = false;
-        this.btnSetPole.disabled  = false;
+        this.btnCapture.disabled      = false;
+        this.btnSetPole.disabled      = false;
         this.recDot.classList.add('live');
         this._startBufferTimer();
       } catch (err) { alert('Camera error: ' + err.message); }
@@ -191,10 +278,7 @@ class CricketReplayApp {
 
   async _captureIncident() {
     const blob = this.recorder.captureIncident(90000);
-    if (!blob) {
-      alert('Not enough footage yet — record for at least a few seconds first.');
-      return;
-    }
+    if (!blob) { alert('Not enough footage yet — record for at least a few seconds first.'); return; }
     this.btnCapture.disabled = true;
     this.btnCapture.textContent = 'Saving…';
     try {
@@ -217,31 +301,24 @@ class CricketReplayApp {
   async _openPlayback(blob) {
     this._showScreen('playback');
     if (!this.playback) this.playback = new Playback(this.playbackVideo, this.playbackCanvas);
-    this.playbackPoleMode = false;
-    this._updatePoleBtn();
     this.speedBtns.forEach(b => b.classList.remove('active'));
     this.speedBtns[0].classList.add('active');
     this.btnPlayPause.textContent = '▶ Play';
     this._updateZoomBadge(1);
     await this.playback.load(blob);
+    this._updatePlaybackPoleButtons();
   }
 
   _togglePlayPause() {
     if (!this.playback) return;
-    if (this.playback.isPaused) {
-      this.playback.play();
-      this.btnPlayPause.textContent = '⏸ Pause';
-    } else {
-      this.playback.pause();
-      this.btnPlayPause.textContent = '▶ Play';
-    }
+    if (this.playback.isPaused) { this.playback.play();  this.btnPlayPause.textContent = '⏸ Pause'; }
+    else                        { this.playback.pause(); this.btnPlayPause.textContent = '▶ Play'; }
   }
 
   _onVideoLoaded() {
     const dur = this.playback?.duration || 0;
     this.totalTimeEl.textContent = this._formatTime(dur);
-    this.timeline.max   = dur;
-    this.timeline.value = 0;
+    this.timeline.max = dur; this.timeline.value = 0;
     this.currentTimeEl.textContent = '0:00';
   }
 
@@ -253,96 +330,163 @@ class CricketReplayApp {
   }
 
   _formatTime(s) {
-    const m = Math.floor(s / 60);
-    return `${m}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+    return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
   }
 
   _updateZoomBadge(z) {
     if (!z || z <= 1.05) { this.zoomBadge.style.display = 'none'; return; }
-    this.zoomBadge.style.display = 'block';
-    this.zoomBadge.textContent = z.toFixed(1) + '×';
+    this.zoomBadge.style.display  = 'block';
+    this.zoomBadge.textContent    = z.toFixed(1) + '×';
   }
 
-  // ── Pole marker ───────────────────────────────────────────────
+  // ── Playback pole button state machine ────────────────────────
 
-  // Live pole — stored as NORMALISED (0-1) so rotation is a non-issue
-  _toggleLivePoleMode() {
-    this.livePoleMode = !this.livePoleMode;
-    this.btnSetPole.textContent = this.livePoleMode ? 'Tap camera to mark pole' : 'Set Pole Marker';
-    this.btnSetPole.classList.toggle('btn-danger',    this.livePoleMode);
-    this.btnSetPole.classList.toggle('btn-secondary', !this.livePoleMode);
-    this.liveOverlay.style.pointerEvents = this.livePoleMode ? 'auto' : 'none';
+  _updatePlaybackPoleButtons() {
+    const state = this.playback?.poleState || 'none';
+    // show/hide each button per state
+    this._show(this.btnSetPolePb,  state === 'none');
+    this._show(this.btnRotatePole, state === 'adjusting' || state === 'locked');
+    this._show(this.btnLockPole,   state === 'adjusting');
+    this._show(this.btnAdjustPole, state === 'locked');
+    this._show(this.btnClearPole,  state === 'adjusting' || state === 'locked');
+
+    // Canvas cursor hint
+    if (this.playbackCanvas) {
+      this.playbackCanvas.style.cursor = state === 'placing' ? 'crosshair' : 'default';
+    }
+
+    // Update set-pole button label for placing state
+    if (state === 'placing') {
+      this.btnSetPolePb.style.display = 'inline-flex';
+      this.btnSetPolePb.textContent   = 'Tap video to place line';
+      this.btnSetPolePb.className     = 'btn btn-danger';
+    } else if (state === 'none') {
+      this.btnSetPolePb.textContent = 'Set Pole Marker';
+      this.btnSetPolePb.className   = 'btn btn-secondary';
+    }
   }
 
-  _handleLiveClick(e) {
-    if (!this.livePoleMode) return;
+  // ── Live pole state machine ───────────────────────────────────
+
+  _updateLivePoleButtons() {
+    const s = this.livePoleState;
+    this._show(this.btnSetPole,       s === 'none' || s === 'placing');
+    this._show(this.btnRotateLive,    s === 'adjusting' || s === 'locked');
+    this._show(this.btnLockLive,      s === 'adjusting');
+    this._show(this.btnAdjustLive,    s === 'locked');
+    this._show(this.btnClearLivePole, s === 'adjusting' || s === 'locked');
+
+    if (s === 'placing') {
+      this.btnSetPole.textContent = 'Tap camera to place';
+      this.btnSetPole.className   = 'btn btn-danger';
+    } else {
+      this.btnSetPole.textContent = 'Set Pole Marker';
+      this.btnSetPole.className   = 'btn btn-secondary';
+      if (!this.recorder.isRecording) this.btnSetPole.disabled = true;
+    }
+  }
+
+  _show(el, visible) { el.style.display = visible ? '' : 'none'; }
+
+  // ── Live pole drawing ─────────────────────────────────────────
+
+  /** Normalised coords from a mouse event on the overlay */
+  _overlayNorm(e) {
     const rect = this.liveOverlay.getBoundingClientRect();
-    // Store normalised so rotation/resize doesn't break position
-    const nx = (e.clientX - rect.left) / rect.width;
-    const ny = (e.clientY - rect.top)  / rect.height;
-    this.livePoleMarker = { nx, ny };
-    this._drawLivePole();
-    this.livePoleMode = false;
-    this.btnSetPole.textContent = 'Set Pole Marker';
-    this.btnSetPole.classList.remove('btn-danger');
-    this.btnSetPole.classList.add('btn-secondary');
-    this.liveOverlay.style.pointerEvents = 'none';
+    return { nx: (e.clientX - rect.left) / rect.width, ny: (e.clientY - rect.top) / rect.height };
+  }
+
+  /** Normalised coords from a Touch object */
+  _overlayNormTouch(touch) {
+    const rect = this.liveOverlay.getBoundingClientRect();
+    return { nx: (touch.clientX - rect.left) / rect.width, ny: (touch.clientY - rect.top) / rect.height };
+  }
+
+  /** Apply drag — only moves the axis perpendicular to the current line orientation */
+  _applyLiveDrag(nx, ny) {
+    if (!this.livePoleMarker) return;
+    if (this.livePoleAngle === 0) { this.livePoleMarker.nx = nx; }  // vertical: X only
+    else                          { this.livePoleMarker.ny = ny; }  // horizontal: Y only
   }
 
   _drawLivePole() {
     const ctx = this.liveOverlay.getContext('2d');
-    ctx.clearRect(0, 0, this.liveOverlay.width, this.liveOverlay.height);
+    const W   = this.liveOverlay.width, H = this.liveOverlay.height;
+    ctx.clearRect(0, 0, W, H);
     if (!this.livePoleMarker) return;
 
-    // Convert normalised → current pixel coords
-    const x = this.livePoleMarker.nx * this.liveOverlay.width;
-    const y = this.livePoleMarker.ny * this.liveOverlay.height;
+    const cx  = this.livePoleMarker.nx * W;
+    const cy  = this.livePoleMarker.ny * H;
+    const isAdjusting = this.livePoleState === 'adjusting';
+    const color       = isAdjusting ? '#f59e0b' : '#ff2020';
+    const angleRad    = this.livePoleAngle * Math.PI / 180;
+    const dx = Math.sin(angleRad), dy = Math.cos(angleRad);
+    const len = Math.max(W, H) * 2;
 
     ctx.save();
-    ctx.strokeStyle = '#ff2020'; ctx.lineWidth = 2;
-    ctx.setLineDash([10, 6]);
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, this.liveOverlay.height); ctx.stroke();
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5;
+    if (isAdjusting) ctx.setLineDash([10, 5]);
+    ctx.beginPath();
+    ctx.moveTo(cx - dx * len, cy - dy * len);
+    ctx.lineTo(cx + dx * len, cy + dy * len);
+    ctx.stroke();
     ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(x, y, 14, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ff2020'; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.fillStyle = 'rgba(255,32,32,0.25)'; ctx.fill();
-    ctx.font = 'bold 13px system-ui, sans-serif';
-    ctx.fillStyle = '#ff2020'; ctx.fillText('POLE', x + 18, y + 5);
+
+    ctx.beginPath(); ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+    ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.fillStyle = isAdjusting ? 'rgba(245,158,11,0.2)' : 'rgba(255,32,32,0.2)';
+    ctx.fill();
+
+    if (isAdjusting) {
+      // Small drag arrows
+      const arrowDx = Math.cos(angleRad), arrowDy = -Math.sin(angleRad);
+      const arrowLen = 28;
+      ctx.strokeStyle = color; ctx.lineWidth = 2;
+      this._drawOverlayArrow(ctx, cx, cy, cx - arrowDx * arrowLen, cy - arrowDy * arrowLen);
+      this._drawOverlayArrow(ctx, cx, cy, cx + arrowDx * arrowLen, cy + arrowDy * arrowLen);
+    }
+
+    ctx.font = 'bold 13px system-ui, sans-serif'; ctx.fillStyle = color;
+    const offX = Math.cos(angleRad) * 20 + Math.sin(angleRad) * 4;
+    const offY = -Math.sin(angleRad) * 20 + Math.cos(angleRad) * 4;
+    ctx.fillText(isAdjusting ? 'DRAG' : 'POLE', cx + offX + 4, cy + offY + 5);
     ctx.restore();
   }
 
-  // Playback pole
-  _togglePlaybackPoleMode() {
-    this.playbackPoleMode = !this.playbackPoleMode;
-    this._updatePoleBtn();
-    this.playbackCanvas.style.cursor = this.playbackPoleMode ? 'crosshair' : 'default';
+  _drawOverlayArrow(ctx, fx, fy, tx, ty) {
+    const headLen = 9;
+    const angle   = Math.atan2(ty - fy, tx - fx);
+    ctx.beginPath();
+    ctx.moveTo(fx, fy); ctx.lineTo(tx, ty);
+    ctx.lineTo(tx - headLen * Math.cos(angle - Math.PI/6), ty - headLen * Math.sin(angle - Math.PI/6));
+    ctx.moveTo(tx, ty);
+    ctx.lineTo(tx - headLen * Math.cos(angle + Math.PI/6), ty - headLen * Math.sin(angle + Math.PI/6));
+    ctx.stroke();
   }
 
-  _updatePoleBtn() {
-    this.btnTogglePole.textContent = this.playbackPoleMode ? 'Tap video to mark pole' : 'Set Pole Marker';
-    this.btnTogglePole.classList.toggle('btn-danger',    this.playbackPoleMode);
-    this.btnTogglePole.classList.toggle('btn-secondary', !this.playbackPoleMode);
+  // ── Share / export ────────────────────────────────────────────
+
+  async _shareBlob(blob) {
+    if (!blob) return;
+    const ext  = blob.type.includes('mp4') ? 'mp4' : 'webm';
+    const name = `cricket-incident-${Date.now()}.${ext}`;
+    const file = new File([blob], name, { type: blob.type });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Cricket Incident' }); return; }
+      catch (err) { if (err.name === 'AbortError') return; }
+    }
+    const url = URL.createObjectURL(blob);
+    const a   = Object.assign(document.createElement('a'), { href: url, download: name });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
-  _handleCanvasClick(e) {
-    if (!this.playbackPoleMode || !this.playback) return;
-    const rect = this.playbackCanvas.getBoundingClientRect();
-    // Convert screen click → canvas pixel coords (accounting for CSS scaling of canvas element)
-    const canvasX = (e.clientX - rect.left) / rect.width  * this.playbackCanvas.width;
-    const canvasY = (e.clientY - rect.top)  / rect.height * this.playbackCanvas.height;
-    this.playback.setPoleMarkerFromCanvas(canvasX, canvasY);
-    this.playbackPoleMode = false;
-    this._updatePoleBtn();
-    this.playbackCanvas.style.cursor = 'default';
-  }
-
-  // ── Incidents list ────────────────────────────────────────────
+  // ── Incidents list ─────────────────────────────────────────────
 
   _renderList() {
     this.incidentsList.innerHTML = '';
     if (this.incidents.length === 0) {
-      this.incidentsList.innerHTML =
-        '<p class="empty">No incidents yet.<br>Press "Capture Incident" while recording.</p>';
+      this.incidentsList.innerHTML = '<p class="empty">No incidents yet.<br>Press "Capture Incident" while recording.</p>';
       return;
     }
     [...this.incidents].sort((a, b) => b.timestamp - a.timestamp).forEach(inc => {
@@ -381,29 +525,6 @@ class CricketReplayApp {
   _shareIncident(id) {
     const inc = this.incidents.find(i => i.id === id);
     if (inc) this._shareBlob(inc.blob);
-  }
-
-  async _shareBlob(blob) {
-    if (!blob) return;
-    const ext  = blob.type.includes('mp4') ? 'mp4' : 'webm';
-    const name = `cricket-incident-${Date.now()}.${ext}`;
-    const file = new File([blob], name, { type: blob.type });
-
-    // Use native share sheet if available (Android/iOS)
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: 'Cricket Incident' });
-        return;
-      } catch (err) {
-        if (err.name === 'AbortError') return; // user cancelled — don't fall through
-      }
-    }
-
-    // Fallback: trigger download
-    const url = URL.createObjectURL(blob);
-    const a   = document.createElement('a');
-    a.href = url; a.download = name; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
   }
 
   async _deleteIncident(id) {
