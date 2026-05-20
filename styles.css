@@ -290,3 +290,222 @@ html, body {
   margin-top: 60px;
   font-size: 15px;
 }
+
+/* ─── Mode Select Screen ───────────────────────────────────── */
+.mode-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  gap: 12px;
+}
+
+.mode-logo { font-size: 56px; line-height: 1; margin-bottom: 4px; }
+
+.mode-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.mode-sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin: 0 0 16px;
+}
+
+.mode-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1.5px solid var(--surface2);
+  border-radius: 16px;
+  padding: 24px 20px;
+  cursor: pointer;
+  transition: border-color .15s, transform .1s;
+}
+.mode-card:active { transform: scale(0.97); border-color: var(--accent); }
+
+.mode-card-icon  { font-size: 36px; }
+.mode-card-label { font-size: 18px; font-weight: 700; color: var(--text); }
+.mode-card-hint  { font-size: 13px; color: var(--muted); text-align: center; }
+
+/* ─── Relay status row (inside rec-bar) ────────────────────── */
+.relay-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface2);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.relay-code-wrap { display: flex; align-items: baseline; gap: 8px; }
+.relay-label     { font-size: 12px; color: var(--muted); }
+.relay-room-code {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.relay-status        { font-size: 13px; color: var(--muted); }
+.relay-status.paired { color: #4ade80; }
+
+/* ─── Connection dot ───────────────────────────────────────── */
+.conn-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--surface2);
+  flex-shrink: 0;
+}
+.conn-dot.paired      { background: #4ade80; box-shadow: 0 0 6px #4ade80; }
+.conn-dot.connecting  { background: #f59e0b; animation: pulse 1.2s ease-in-out infinite; }
+
+/* ─── 3rd Umpire Screen ────────────────────────────────────── */
+.umpire-phase {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.umpire-connect-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 24px;
+}
+
+.umpire-icon { font-size: 48px; }
+
+.umpire-connect-label {
+  font-size: 15px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.room-code-input {
+  width: 180px;
+  background: var(--surface2);
+  border: 2px solid var(--surface2);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  text-align: center;
+  padding: 12px 8px;
+  outline: none;
+  caret-color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.room-code-input:focus { border-color: var(--accent); }
+
+.umpire-error { font-size: 13px; color: var(--danger); }
+
+.umpire-ready-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 32px 24px;
+}
+
+.umpire-pair-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: var(--muted);
+  background: var(--surface2);
+  padding: 10px 18px;
+  border-radius: 999px;
+}
+.umpire-pair-status.paired { color: #4ade80; }
+
+.umpire-capture-btn {
+  font-size: 20px;
+  padding: 20px 36px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 320px;
+}
+
+.umpire-feedback {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.umpire-progress-wrap {
+  width: 100%;
+  max-width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.progress-track {
+  width: 100%;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 99px;
+  width: 0%;
+  transition: width .1s;
+}
+
+.umpire-progress-label { font-size: 13px; color: var(--muted); text-align: center; }
+
+/* ─── Umpire review phase ──────────────────────────────────── */
+.umpire-review-phase { overflow-y: auto; }
+
+/* ─── Save row (umpire save with name) ─────────────────────── */
+.save-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.incident-name-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1.5px solid var(--surface2);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  caret-color: var(--accent);
+}
+.incident-name-input:focus { border-color: var(--accent); }
+.incident-name-input::placeholder { color: var(--muted); }

@@ -1,6 +1,6 @@
-const CACHE = 'cricket-replay-v1';
+const CACHE = 'cricket-replay-v2';
 const BASE = '/cricket-replay';
-const ASSETS = [BASE + '/', BASE + '/index.html', BASE + '/styles.css', BASE + '/app.js', BASE + '/recorder.js', BASE + '/playback.js', BASE + '/storage.js', BASE + '/manifest.json', BASE + '/icon.svg'];
+const ASSETS = [BASE + '/', BASE + '/index.html', BASE + '/styles.css', BASE + '/app.js', BASE + '/recorder.js', BASE + '/playback.js', BASE + '/storage.js', BASE + '/relay.js', BASE + '/manifest.json', BASE + '/icon.svg'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

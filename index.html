@@ -13,11 +13,31 @@
 </head>
 <body>
 
+  <!-- ─── Mode Select Screen ────────────────────────────────────── -->
+  <div id="screen-mode" class="screen active">
+    <div class="mode-wrap">
+      <div class="mode-logo">🏏</div>
+      <h1 class="mode-title">Cricket Replay</h1>
+      <p class="mode-sub">Six or Out — Pole Dispute Tool</p>
+      <div class="mode-cards">
+        <button id="btn-mode-recorder" class="mode-card">
+          <span class="mode-card-icon">📹</span>
+          <span class="mode-card-label">Recorder</span>
+          <span class="mode-card-hint">Mount phone side-on to the boundary pole</span>
+        </button>
+        <button id="btn-mode-umpire" class="mode-card">
+          <span class="mode-card-icon">⚖️</span>
+          <span class="mode-card-label">3rd Umpire</span>
+          <span class="mode-card-hint">Trigger capture & review incidents remotely</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ─── Record Screen ─────────────────────────────────────── -->
-  <div id="screen-record" class="screen active">
+  <div id="screen-record" class="screen">
 
     <div class="camera-wrap">
-      <!-- camera-inner is CSS-scaled for live zoom; both video + overlay move together -->
       <div id="camera-inner">
         <video id="live-video" autoplay muted playsinline></video>
         <canvas id="live-overlay"></canvas>
@@ -33,7 +53,15 @@
         <small style="color:#52525b">Side-on ~60-70 yds from pole</small>
       </div>
 
-      <!-- Live zoom slider -->
+      <!-- Remote relay status row (shown when recording) -->
+      <div id="relay-row" class="relay-row" style="display:none">
+        <div class="relay-code-wrap">
+          <span class="relay-label">Room code</span>
+          <span id="relay-room-code" class="relay-room-code">—</span>
+        </div>
+        <span id="relay-status" class="relay-status">⏳ Waiting for umpire</span>
+      </div>
+
       <div class="zoom-row">
         <span class="zoom-label">Zoom</span>
         <input type="range" id="live-zoom" min="1" max="5" step="0.1" value="1">
@@ -50,9 +78,9 @@
         </button>
         <button id="btn-set-pole"        class="btn btn-secondary"       disabled>Set Pole Marker</button>
         <button id="btn-rotate-live"     class="btn btn-sm btn-secondary" style="display:none">↻ Rotate</button>
-        <button id="btn-lock-live"       class="btn btn-sm btn-danger"             style="display:none">Lock</button>
-        <button id="btn-adjust-live"     class="btn btn-sm btn-secondary"          style="display:none">Adjust</button>
-        <button id="btn-clear-live-pole" class="btn btn-sm btn-secondary"          style="display:none">Clear</button>
+        <button id="btn-lock-live"       class="btn btn-sm btn-danger"   style="display:none">Lock</button>
+        <button id="btn-adjust-live"     class="btn btn-sm btn-secondary" style="display:none">Adjust</button>
+        <button id="btn-clear-live-pole" class="btn btn-sm btn-secondary" style="display:none">Clear</button>
       </div>
     </div>
 
@@ -91,11 +119,10 @@
         <button class="btn btn-sm speed-btn" data-speed="0.1">0.1×</button>
       </div>
       <div class="transport-row">
-        <button id="btn-step-back" class="btn btn-icon" title="Step back one frame">⏮</button>
+        <button id="btn-step-back" class="btn btn-icon">⏮</button>
         <button id="btn-play-pause" class="btn btn-primary">▶ Play</button>
-        <button id="btn-step-fwd"  class="btn btn-icon" title="Step forward one frame">⏭</button>
+        <button id="btn-step-fwd"  class="btn btn-icon">⏭</button>
       </div>
-      <!-- Pole controls: buttons shown/hidden by state machine in app.js -->
       <div class="pole-row">
         <button id="btn-set-pole-pb"  class="btn btn-secondary">Set Pole Marker</button>
         <button id="btn-rotate-pole"  class="btn btn-sm btn-secondary" style="display:none">↻ Rotate</button>
@@ -122,9 +149,104 @@
 
   </div>
 
+  <!-- ─── 3rd Umpire Screen ─────────────────────────────────── -->
+  <div id="screen-umpire" class="screen">
+
+    <!-- Header (always visible) -->
+    <div class="pb-header">
+      <button id="btn-umpire-back" class="btn btn-icon">‹ Back</button>
+      <span class="title">3rd Umpire</span>
+      <span id="umpire-conn-dot" class="conn-dot"></span>
+    </div>
+
+    <!-- Phase: connect — enter room code -->
+    <div id="umpire-ph-connect" class="umpire-phase">
+      <div class="umpire-connect-body">
+        <div class="umpire-icon">📡</div>
+        <p class="umpire-connect-label">Enter the room code shown on the recorder phone</p>
+        <input type="tel" id="room-code-input" class="room-code-input"
+               maxlength="4" placeholder="0000" inputmode="numeric" pattern="[0-9]*">
+        <button id="btn-umpire-connect" class="btn btn-primary">Connect</button>
+        <p id="umpire-connect-error" class="umpire-error" style="display:none"></p>
+      </div>
+    </div>
+
+    <!-- Phase: ready — waiting for recorder / paired / capturing -->
+    <div id="umpire-ph-ready" class="umpire-phase" style="display:none">
+      <div class="umpire-ready-body">
+        <div id="umpire-pair-status" class="umpire-pair-status waiting">
+          <span id="umpire-pair-icon">⏳</span>
+          <span id="umpire-pair-text">Waiting for recorder phone…</span>
+        </div>
+        <button id="btn-umpire-capture" class="btn btn-danger umpire-capture-btn" disabled>
+          🎥 Capture Incident
+        </button>
+        <div id="umpire-feedback" class="umpire-feedback" style="display:none"></div>
+        <div id="umpire-progress-wrap" class="umpire-progress-wrap" style="display:none">
+          <div class="progress-track"><div id="umpire-progress-fill" class="progress-fill"></div></div>
+          <span id="umpire-progress-label" class="umpire-progress-label">Uploading…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase: review — video loaded, playback + save -->
+    <div id="umpire-ph-review" class="umpire-phase umpire-review-phase" style="display:none">
+
+      <div class="canvas-wrap">
+        <video id="umpire-video" muted playsinline style="display:none"></video>
+        <canvas id="umpire-canvas"></canvas>
+      </div>
+
+      <div class="timeline-wrap">
+        <input type="range" id="umpire-timeline" min="0" max="100" value="0" step="any">
+        <div class="time-row">
+          <span id="umpire-current-time">0:00</span>
+          <span class="zoom-hint">Pinch to zoom · drag to pan</span>
+          <span id="umpire-total-time">0:00</span>
+        </div>
+      </div>
+
+      <div class="pb-controls">
+        <div class="speed-row">
+          <span>Speed:</span>
+          <button class="btn btn-sm speed-btn active" data-speed="1" data-target="umpire">1×</button>
+          <button class="btn btn-sm speed-btn" data-speed="0.5"  data-target="umpire">0.5×</button>
+          <button class="btn btn-sm speed-btn" data-speed="0.25" data-target="umpire">0.25×</button>
+          <button class="btn btn-sm speed-btn" data-speed="0.1"  data-target="umpire">0.1×</button>
+        </div>
+        <div class="transport-row">
+          <button id="btn-umpire-step-back"  class="btn btn-icon">⏮</button>
+          <button id="btn-umpire-play-pause" class="btn btn-primary">▶ Play</button>
+          <button id="btn-umpire-step-fwd"   class="btn btn-icon">⏭</button>
+        </div>
+        <!-- Pole marker controls (same state machine, separate buttons) -->
+        <div class="pole-row">
+          <button id="btn-umpire-set-pole"    class="btn btn-secondary">Set Pole Marker</button>
+          <button id="btn-umpire-rotate-pole" class="btn btn-sm btn-secondary" style="display:none">↻ Rotate</button>
+          <button id="btn-umpire-lock-pole"   class="btn btn-sm btn-danger"    style="display:none">Lock</button>
+          <button id="btn-umpire-adjust-pole" class="btn btn-sm btn-secondary" style="display:none">Adjust</button>
+          <button id="btn-umpire-clear-pole"  class="btn btn-sm btn-secondary" style="display:none">Clear</button>
+          <button id="btn-umpire-reset-zoom"  class="btn btn-sm btn-secondary">1×</button>
+        </div>
+        <!-- Save with name -->
+        <div class="save-row">
+          <input type="text" id="incident-name-input" class="incident-name-input"
+                 placeholder="Name this incident (e.g. Over 12 boundary)">
+          <button id="btn-umpire-save" class="btn btn-primary">Save</button>
+        </div>
+        <button id="btn-umpire-back-capture" class="btn btn-secondary" style="margin-top:4px">
+          ← Back to Capture
+        </button>
+      </div>
+
+    </div>
+
+  </div>
+
   <script src="storage.js"></script>
   <script src="recorder.js"></script>
   <script src="playback.js"></script>
+  <script src="relay.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
