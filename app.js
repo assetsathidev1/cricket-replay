@@ -524,7 +524,7 @@ class CricketReplayApp {
 
   async _relayCapture() {
     if (!this.recorder.isRecording) return;
-    const blob = this.recorder.captureIncident(30000); // 30s for speed
+    const blob = this.recorder.captureIncident(90000); // full 90s buffer
     if (!blob) return;
 
     // Notify umpire that capture is happening
