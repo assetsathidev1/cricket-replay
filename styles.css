@@ -61,6 +61,15 @@ html, body {
   min-height: 0;
 }
 
+/* camera-inner is CSS-scaled for live zoom; overflow:hidden on .camera-wrap clips it */
+#camera-inner {
+  position: absolute;
+  inset: 0;
+  transform-origin: center center;
+  /* smooth zoom feel */
+  transition: transform 0.08s ease-out;
+}
+
 #live-video {
   width: 100%;
   height: 100%;
@@ -108,6 +117,15 @@ html, body {
   50% { opacity: 0.3; }
 }
 
+.zoom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.zoom-label { color: var(--muted); font-size: 13px; flex-shrink: 0; }
+.zoom-val   { color: var(--text);  font-size: 13px; flex-shrink: 0; min-width: 36px; text-align: right; }
+.zoom-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
 .btn-row {
   display: flex;
   gap: 10px;
@@ -146,6 +164,25 @@ html, body {
   max-width: 100%;
   max-height: 100%;
   display: block;
+  touch-action: none; /* let our gesture handler take over */
+}
+
+.zoom-badge {
+  position: absolute;
+  top: 10px; right: 10px;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.zoom-hint {
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .timeline-wrap {

@@ -17,8 +17,11 @@
   <div id="screen-record" class="screen active">
 
     <div class="camera-wrap">
-      <video id="live-video" autoplay muted playsinline></video>
-      <canvas id="live-overlay"></canvas>
+      <!-- camera-inner is CSS-scaled for live zoom; both video + overlay move together -->
+      <div id="camera-inner">
+        <video id="live-video" autoplay muted playsinline></video>
+        <canvas id="live-overlay"></canvas>
+      </div>
     </div>
 
     <div class="rec-bar">
@@ -27,8 +30,16 @@
         <span id="buffer-status">Buffer: 0s</span>
         <span id="fps-display"></span>
         <span style="flex:1"></span>
-        <small style="color:#52525b">Mount side-on ~60-70 yards from pole</small>
+        <small style="color:#52525b">Side-on ~60-70 yds from pole</small>
       </div>
+
+      <!-- Live zoom slider -->
+      <div class="zoom-row">
+        <span class="zoom-label">Zoom</span>
+        <input type="range" id="live-zoom" min="1" max="5" step="0.1" value="1">
+        <span id="live-zoom-val" class="zoom-val">1.0×</span>
+      </div>
+
       <div class="btn-row">
         <button id="btn-start-stop" class="btn btn-primary">Start Recording</button>
         <button id="btn-capture"    class="btn btn-danger"  disabled>Capture Incident</button>
@@ -49,18 +60,20 @@
     <div class="pb-header">
       <button id="btn-back" class="btn btn-icon">‹ Back</button>
       <span class="title">Incident Review</span>
-      <button id="btn-export" class="btn btn-sm btn-secondary">Export</button>
+      <button id="btn-export" class="btn btn-sm btn-secondary">Share</button>
     </div>
 
     <div class="canvas-wrap">
       <video id="playback-video" muted playsinline></video>
       <canvas id="playback-canvas"></canvas>
+      <div id="zoom-badge" class="zoom-badge" style="display:none">1.0×</div>
     </div>
 
     <div class="timeline-wrap">
       <input type="range" id="timeline" min="0" max="100" value="0" step="any">
       <div class="time-row">
         <span id="current-time">0:00</span>
+        <span class="zoom-hint">Pinch to zoom · drag to pan</span>
         <span id="total-time">0:00</span>
       </div>
     </div>
@@ -81,6 +94,7 @@
       <div class="pole-row">
         <button id="btn-toggle-pole" class="btn btn-secondary">Set Pole Marker</button>
         <button id="btn-clear-pole"  class="btn btn-sm btn-secondary">Clear</button>
+        <button id="btn-reset-zoom"  class="btn btn-sm btn-secondary">Reset Zoom</button>
       </div>
     </div>
 
